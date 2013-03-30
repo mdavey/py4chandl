@@ -1,1 +1,3 @@
-py4chandl.iml 
+*.iml
+*.pyc
+*.pyo
