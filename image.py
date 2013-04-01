@@ -2,12 +2,15 @@ __author__ = 'Matthew'
 
 import httplib
 import os
+import time
 
 
 class Image:
     def __init__(self, host, page):
         self.host = host
         self.page = page
+        self.download_time = None
+        self.download_size = None
 
     def __str__(self):
         return 'host: %s, page:%s' % (self.host, self.page)
@@ -17,10 +20,9 @@ class Image:
 
     def download(self, dest):
         if os.path.exists(dest):
-            print 'Skipping image %s%s to %s' % (self.host, self.page, dest)
-            return
+            return False
 
-        print 'Downloading image %s%s to %s' % (self.host, self.page, dest)
+        start_time = time.time()
 
         conn = httplib.HTTPSConnection(self.host)
         conn.putrequest('GET', self.page)
@@ -31,5 +33,10 @@ class Image:
         file = open(dest, 'wb+')
         file.write(data)
 
+        self.download_time = time.time() - start_time
+        self.download_size = len(data)
+
+        return True
+
     def download_to(self, directory):
-        self.download(directory + '/' + self.get_filename())
+        return self.download(directory + '/' + self.get_filename())

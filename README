@@ -1,9 +1,9 @@
-Basic Python script for downloading a batch off images off 4chan
+Simple command line Python script for downloading a images from a 4chan thread
 
 Uses Beutifulsoup4 for parsing and httplib for https connections (does not verify certificate)
 
 TODO:
- * Display progress
- * Handle timeouts
- * Handle errors in general
- * Check valid inputs
+ * Display progress (e.g. overall speed rather than per thread)
+ * Handle timeouts and retry downloads
+ * Handle CTRL+C in threads correctly
+ * Check command line arguments
