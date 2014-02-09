@@ -1,4 +1,4 @@
-__author__ = 'Matthew'
+#!/usr/bin/env python
 
 import os
 import argparse
@@ -33,4 +33,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     download('boards.4chan.org', args.thread, args.dest, args.pool)
-

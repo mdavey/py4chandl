@@ -1,5 +1,3 @@
-__author__ = 'Matthew'
-
 import httplib
 
 from bs4 import BeautifulSoup
@@ -28,9 +26,9 @@ class Page:
 
         for link in soup.find_all('a'):
             href = link.get('href')
-            if href is not None and href[:18] == '//images.4chan.org':
-                host = 'images.4chan.org'
-                page = href[18:]
+            if href is not None and href[:12] == '//i.4cdn.org':
+                host = 'i.4cdn.org'
+                page = href[12:]
 
                 if page not in page_seen:
                     yield Image(host, page)

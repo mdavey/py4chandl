@@ -1,5 +1,3 @@
-__author__ = 'Matthew'
-
 import httplib
 import os
 import time
@@ -30,8 +28,9 @@ class Image:
         response = conn.getresponse()
         data = response.read()
 
-        file = open(dest, 'wb+')
-        file.write(data)
+        f = open(dest, 'wb+')
+        f.write(data)
+        f.close()
 
         self.download_time = time.time() - start_time
         self.download_size = len(data)
