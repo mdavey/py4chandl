@@ -1,9 +1,10 @@
-Simple command line Python script for downloading a images from a 4chan thread
+Another simple Python script for downloading a images from a 8ch/4chan thread
 
-Uses Beutifulsoup4 for parsing and httplib for https connections (does not verify certificate)
+Uses BeautifulSoup4 for parsing and httplib for https connections (does not verify certificate)
 
 TODO:
- * Display progress (e.g. overall speed rather than per thread)
  * Handle timeouts and retry downloads
  * Handle CTRL+C in threads correctly
  * Check command line arguments
+ * Error handling in general
+ * OS agnostic + test on linux

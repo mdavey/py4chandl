@@ -1,0 +1,83 @@
+import threading
+import Queue
+import time
+import os
+
+from downloadhttps import download_url
+
+
+class DownloadPool:
+    def __init__(self, num_threads):
+        self.num_threads = num_threads
+        self.queue = Queue.Queue()
+        self.bytes_downloaded = 0
+        self.start_time = time.time()
+
+    def add_file(self, url):
+        self.queue.put(url)
+
+    def download(self, directory):
+        semaphore_io = threading.Semaphore()
+
+        for i in range(self.num_threads):
+            t = DownloadThread(self, 'thread' + str(i), self.queue, semaphore_io, directory)
+            t.daemon = True
+            t.start()
+
+        self.queue.join()
+
+    def add_bytes_downloaded(self, amount):
+        self.bytes_downloaded += amount
+
+    def get_bytes_downloaded(self):
+        return self.bytes_downloaded
+
+    def get_start_time(self):
+        return self.start_time
+
+
+class DownloadThread(threading.Thread):
+    def __init__(self, pool, name, queue, semaphore_io, directory):
+        threading.Thread.__init__(self)
+        self.pool = pool
+        self.name = name
+        self.queue = queue
+        self.semaphore_io = semaphore_io
+        self.directory = directory
+
+    def safe_print(self, s):
+        self.semaphore_io.acquire()
+        print s
+        self.semaphore_io.release()
+
+    def run(self):
+        while True:
+            try:
+                url = self.queue.get()
+                filename = url[url.rfind('/')+1:]
+
+                if os.path.exists(self.directory + '/' + filename):
+                    self.safe_print("Download skipped  {}".format(filename))
+                    continue
+
+                start_time = time.time()
+                data = download_url(url, self.directory + '/' + filename)
+                end_time = time.time()
+
+                # Really don't like doing stuff do the download pool here
+                # Is this thread safe?
+                # Should everything but the download_url call be inside a semaphore?
+                self.pool.add_bytes_downloaded(len(data))
+
+                # This speed is alright.  But total speed isn't going to be a bit rough.  Better than nothing though
+                this_speed_kbs = int((len(data) / (end_time-start_time)) / 1024)
+                total_speed_kbs = int((self.pool.get_bytes_downloaded() / (end_time-self.pool.get_start_time())) / 1024)
+
+                self.safe_print("Download complete  {}  {:,}KB/s  ({:,}KB/s)  ~{:,} images left".format(
+                    filename, this_speed_kbs, total_speed_kbs, self.queue.qsize()))
+
+            except Exception, e:
+                # TODO: This cannot be right, but how do I make sure queue.task_done is called?
+                print self.safe_print("Exception " + str(e))
+            finally:
+                self.queue.task_done()
