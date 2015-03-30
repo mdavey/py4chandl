@@ -21,7 +21,7 @@ def get_images(html):
         if href is None:
             continue
 
-        match = re.search('//(i.4cdn.org/v/\d+\.[a-zA-Z]{3,4})', href, re.DOTALL)
+        match = re.search('//(i.4cdn.org/[a-z0-9]+/\d+\.[a-zA-Z]{3,4})', href, re.DOTALL)
 
         if match is not None:
             url = 'https://' + match.group(1)
