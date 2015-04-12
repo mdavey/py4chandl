@@ -31,7 +31,7 @@ def get_images_for_url(url):
     return None
 
 
-def download(dest, images, pool):
+def download_images_internally(dest, images, pool):
     if not os.path.exists(dest):
         os.makedirs(dest)
 
@@ -45,7 +45,7 @@ def download(dest, images, pool):
     print "Done"
 
 
-def download_with_aria2(dest, images):
+def download_images_aria2(dest, images):
     # http://ziahamza.github.io/webui-aria2/
     aria2rpc = Aria2Rpc('http://localhost:6800/jsonrpc')
     print aria2rpc.request('aria2.getGlobalStat', [[]])
@@ -57,7 +57,22 @@ def download_with_aria2(dest, images):
     print 'Images sent'
 
 
-def main():
+def main(url, destination, pool_size=4, with_aria2=False):
+    images = get_images_for_url(url)
+
+    if images is None:
+        raise(Exception('No plugin was found to handle url'))
+    elif len(images) == 0:
+        raise(Exception('No images found'))
+    elif with_aria2:
+        download_images_aria2(destination, images)
+    else:
+        download_images_internally(destination, images, pool_size)
+
+    return len(images)
+
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Download all images from a page to a directory')
     parser.add_argument('url', help='Source url')
     parser.add_argument('dest', help='Destination directory')
@@ -65,17 +80,4 @@ def main():
     parser.add_argument('--aria2', action='store_true', help='Send downloads to local aria2 daemon')
     args = parser.parse_args()
 
-    images = get_images_for_url(args.url)
-
-    if images is None:
-        print 'No plugin was found to handle url'
-    elif len(images) == 0:
-        print 'No images found to download'
-    elif args.aria2:
-        download_with_aria2(args.dest, images)
-    else:
-        download(args.dest, images, args.pool)
-
-
-if __name__ == '__main__':
-    main()
+    main(args.url, args.dest, args.pool, args.aria2)
