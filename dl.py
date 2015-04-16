@@ -1,34 +1,23 @@
 #!/usr/bin/env python
 
-import imp
 import os
-from glob import glob
 import argparse
 
 from aria2rpc import Aria2Rpc
 from downloadpool import DownloadPool
 from downloadhttps import download_url
-
-
-def load_plugins(directory):
-    plugins = []
-    for filename in glob(os.path.join(directory, '*.py')):
-        if filename == os.path.join(directory, '__init__.py'):
-            continue
-        plugin_name = os.path.basename(filename).split('.')[0]
-        plugin_details = imp.find_module(plugin_name, [directory])
-        plugins.append(imp.load_module(plugin_name, *plugin_details))
-    return plugins
+from siteplugins import get_plugin_for_url
 
 
 def get_images_for_url(url):
-    for plugin in load_plugins('sites'):
-        if plugin.can_handle(url):
-            print 'Using plugin', plugin.get_name()
-            page_html = download_url(url)
-            return plugin.get_images(page_html)
+    plugin = get_plugin_for_url(url)
 
-    return None
+    if plugin is None:
+        return None
+
+    print 'Using plugin', plugin.get_name()
+    page_html = download_url(url)
+    return plugin.get_images(page_html)
 
 
 def download_images_internally(dest, images, pool):
@@ -38,10 +27,11 @@ def download_images_internally(dest, images, pool):
     thread_pool = DownloadPool(pool)
 
     for image in images:
-        thread_pool.add_file(image)
+        thread_pool.add_file(image, dest)
 
     print "Found {count} images".format(count=len(images))
-    thread_pool.download(dest)
+    thread_pool.start()
+    thread_pool.join()
     print "Done"
 
 

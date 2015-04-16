@@ -2,9 +2,11 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 import urlparse
+import os
 
-import dl
-
+from siteplugins import get_plugin_for_url
+from downloadpool import DownloadPool
+from downloadhttps import download_url
 
 # This is a really horrible thing
 # Don't use it
@@ -20,13 +22,36 @@ import dl
 
 class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+        global download_pool
+
         url_components = urlparse.urlparse(self.path)
         url_query = urlparse.parse_qs(url_components.query)
-        print(repr(url_query))
+
         if 'u' in url_query and 'p' in url_query:
             try:
-                image_count = dl.main(url_query['u'][0], 'c:/images/test/' + url_query['p'][0], 4, False)
-                self.done('Done.  Downloaded ' + str(image_count) + ' images')
+
+                url = url_query['u'][0]
+                plugin = get_plugin_for_url(url)
+
+                if plugin is None:
+                    self.done('No plugin found for: ' + url)
+                    return
+
+                images = plugin.get_images(download_url(url))
+
+                if len(images) == 0:
+                    self.done('No images found')
+                    return
+
+                path = 'c:/images/test/' + url_query['p'][0]
+                if not os.path.exists(path):
+                    os.makedirs(path)
+
+                for image in images:
+                    download_pool.add_file(image, path)
+
+                self.done(str(len(images)) + ' queued for download')
+
             except Exception, e:
                 self.done('Error: ' + e.message)
         else:
@@ -45,6 +70,9 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 if __name__ == '__main__':
+
+    download_pool = DownloadPool(4)
+    download_pool.start()
     server = ThreadedHTTPServer(('127.0.0.1', 8080), CustomHandler)
     print 'Listening on 127.0.0.1:8080'
 
@@ -53,3 +81,6 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print 'Server stopping'
         server.socket.close()
+        print 'Waiting for download pool to finish'
+        download_pool.join()
+        print 'Done'

@@ -13,17 +13,18 @@ class DownloadPool:
         self.bytes_downloaded = 0
         self.start_time = time.time()
 
-    def add_file(self, url):
-        self.queue.put(url)
+    def add_file(self, url, path):
+        self.queue.put((url, path))
 
-    def download(self, directory):
+    def start(self):
         semaphore_io = threading.Semaphore()
 
         for i in range(self.num_threads):
-            t = DownloadThread(self, 'thread' + str(i), self.queue, semaphore_io, directory)
+            t = DownloadThread(self, 'thread' + str(i), self.queue, semaphore_io)
             t.daemon = True
             t.start()
 
+    def join(self):
         self.queue.join()
 
     def add_bytes_downloaded(self, amount):
@@ -37,13 +38,12 @@ class DownloadPool:
 
 
 class DownloadThread(threading.Thread):
-    def __init__(self, pool, name, queue, semaphore_io, directory):
+    def __init__(self, pool, name, queue, semaphore_io):
         threading.Thread.__init__(self)
         self.pool = pool
         self.name = name
         self.queue = queue
         self.semaphore_io = semaphore_io
-        self.directory = directory
 
     def safe_print(self, s):
         self.semaphore_io.acquire()
@@ -53,15 +53,15 @@ class DownloadThread(threading.Thread):
     def run(self):
         while True:
             try:
-                url = self.queue.get()
+                (url, directory) = self.queue.get()
                 filename = url[url.rfind('/')+1:]
 
-                if os.path.exists(self.directory + '/' + filename):
+                if os.path.exists(directory + '/' + filename):
                     self.safe_print("Download skipped  {}".format(filename))
                     continue
 
                 start_time = time.time()
-                data = download_url(url, self.directory + '/' + filename)
+                data = download_url(url, directory + '/' + filename)
                 end_time = time.time()
 
                 # Really don't like doing stuff do the download pool here
