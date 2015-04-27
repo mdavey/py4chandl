@@ -13,8 +13,8 @@ class DownloadPool:
         self.bytes_downloaded = 0
         self.start_time = time.time()
 
-    def add_file(self, url, path):
-        self.queue.put((url, path))
+    def add_file(self, url, path, filename=None):
+        self.queue.put((url, path, filename))
 
     def start(self):
         semaphore_io = threading.Semaphore()
@@ -53,8 +53,10 @@ class DownloadThread(threading.Thread):
     def run(self):
         while True:
             try:
-                (url, directory) = self.queue.get()
-                filename = url[url.rfind('/')+1:]
+                (url, directory, filename) = self.queue.get()
+
+                if filename is None:
+                    filename = url[url.rfind('/')+1:]
 
                 if os.path.exists(directory + '/' + filename):
                     self.safe_print("Download skipped  {}".format(filename))
@@ -64,9 +66,6 @@ class DownloadThread(threading.Thread):
                 data = download_url(url, directory + '/' + filename)
                 end_time = time.time()
 
-                # Really don't like doing stuff do the download pool here
-                # Is this thread safe?
-                # Should everything but the download_url call be inside a semaphore?
                 self.pool.add_bytes_downloaded(len(data))
 
                 # This speed is alright.  But total speed isn't going to be a bit rough.  Better than nothing though

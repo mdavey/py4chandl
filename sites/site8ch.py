@@ -3,15 +3,16 @@ import re
 
 
 def get_name():
-    return '8ch.net-0.1'
+    return '8ch.net-0.2'
 
 
 def can_handle(url):
     return 'https://8ch.net/' in url
 
 
-def get_images(html):
+def get_links(html):
     urls = []
+    links = []
 
     soup = BeautifulSoup(html)
 
@@ -27,5 +28,6 @@ def get_images(html):
             url = match.group(1)
             if url not in urls:
                 urls.append(url)
+                links.append({'url': url, 'name': url})
                 
-    return urls
+    return links

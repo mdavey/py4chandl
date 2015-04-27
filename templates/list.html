@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>List</title>
+</head>
+<body>
+    <h3>For: {{ url }}</h3>
+
+    <form action="/download" method="post">
+        <label for="path">Path</label><input type="text" name="path" id="path" value="/tmp/">
+        <br>
+        {% set counter = 0 %}
+        {% for item in links %}
+            {% set counter = counter + 1 %}
+            <input type="checkbox" checked id="id_{{ counter }}" name="{{ counter }}">
+            <label for="{{ counter }}">{{ item.name }}</label>
+            <input type="hidden" name="url_{{ counter }}" value="{{ item.url }}">
+            <input type="hidden" name="filename_{{ counter }}" value="{{ item.name }}">
+            <br>
+        {% endfor %}
+        <input type="submit" value="Queue">
+    </form>
+
+</body>
+</html>

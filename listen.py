@@ -1,86 +1,60 @@
 #!/usr/bin/python
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-from SocketServer import ThreadingMixIn
-import urlparse
+
 import os
+
+from flask import Flask
+from flask import render_template
+from flask import request
 
 from siteplugins import get_plugin_for_url
 from downloadpool import DownloadPool
 from downloadhttps import download_url
 
-# This is a really horrible thing
-# Don't use it
-# We've a threaded server, running a method that starts more threads without proper communication between the layers
-# I'm not sure why it even works the way it does
-# ... Turns out it doesn't work the way I thought it did.  Weird.  But expected.
-#
-# Reason for this abomination  (it's a bookmarklet)
-# javascript:
-# var new_url = 'http://127.0.0.1:8080/?u=' + window.location.href + '&p=' + prompt('Download directory', 'test');
-# window.open(new_url);
+
+app = Flask('py4chandl')
+app.debug = True
 
 
-class CustomHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        global download_pool
-
-        url_components = urlparse.urlparse(self.path)
-        url_query = urlparse.parse_qs(url_components.query)
-
-        if 'u' in url_query and 'p' in url_query:
-            try:
-
-                url = url_query['u'][0]
-                plugin = get_plugin_for_url(url)
-
-                if plugin is None:
-                    self.done('No plugin found for: ' + url)
-                    return
-
-                images = plugin.get_images(download_url(url))
-
-                if len(images) == 0:
-                    self.done('No images found')
-                    return
-
-                path = 'c:/images/test/' + url_query['p'][0]
-                if not os.path.exists(path):
-                    os.makedirs(path)
-
-                for image in images:
-                    download_pool.add_file(image, path)
-
-                self.done(str(len(images)) + ' queued for download')
-
-            except Exception, e:
-                self.done('Error: ' + e.message)
-        else:
-            self.done('Missing params: ' + repr(url_query))
-
-    def done(self, text):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(text)
-        return
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
-class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
-    """Handle requests in a separate thread."""
+@app.route('/list/<path:url>')
+def list_links(url):
+    plugin = get_plugin_for_url(url)
+    if plugin is None:
+        return render_template('noplugin.html', url=url)
+
+    links = plugin.get_links(download_url(url))
+    return render_template('list.html', url=url, links=links)
 
 
-if __name__ == '__main__':
+@app.route('/download', methods=['POST'])
+def download():
+    count = 0
+    path = request.form['path']
 
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    for (name, value) in request.form.iteritems():
+        if value == 'on':
+            url = request.form['url_' + name]
+            filename = request.form['filename_' + name]
+            download_pool.add_file(url, path, filename)
+            count += 1
+
+    return 'Images added: ' + str(count)
+
+
+if __name__ == "__main__":
     download_pool = DownloadPool(4)
     download_pool.start()
-    server = ThreadedHTTPServer(('127.0.0.1', 8080), CustomHandler)
-    print 'Listening on 127.0.0.1:8080'
 
     try:
-        server.serve_forever()
+        app.run()
     except KeyboardInterrupt:
-        print 'Server stopping'
-        server.socket.close()
         print 'Waiting for download pool to finish'
         download_pool.join()
         print 'Done'

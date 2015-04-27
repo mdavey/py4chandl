@@ -17,31 +17,31 @@ def get_images_for_url(url):
 
     print 'Using plugin', plugin.get_name()
     page_html = download_url(url)
-    return plugin.get_images(page_html)
+    return plugin.get_links(page_html)
 
 
-def download_images_internally(dest, images, pool):
+def download_images_internally(dest, links, pool):
     if not os.path.exists(dest):
         os.makedirs(dest)
 
     thread_pool = DownloadPool(pool)
 
-    for image in images:
-        thread_pool.add_file(image, dest)
+    for link in links:
+        thread_pool.add_file(link.url, dest, link.name)
 
-    print "Found {count} images".format(count=len(images))
+    print "Found {count} images".format(count=len(links))
     thread_pool.start()
     thread_pool.join()
     print "Done"
 
 
-def download_images_aria2(dest, images):
+def download_images_aria2(dest, links):
     # http://ziahamza.github.io/webui-aria2/
     aria2rpc = Aria2Rpc('http://localhost:6800/jsonrpc')
     print aria2rpc.request('aria2.getGlobalStat', [[]])
 
-    for image in images:
-        print aria2rpc.request('aria2.addUri', [[image], {'dir': dest}])
+    for link in links:
+        print aria2rpc.request('aria2.addUri', [[link.url], {'dir': dest}])
 
     print aria2rpc.request('aria2.getGlobalStat', [[]])
     print 'Images sent'
