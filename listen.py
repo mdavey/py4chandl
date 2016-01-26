@@ -73,8 +73,8 @@ if __name__ == '__main__':
 
     download_pool = DownloadPool(4)
     download_pool.start()
-    server = ThreadedHTTPServer(('127.0.0.1', 8080), CustomHandler)
-    print 'Listening on 127.0.0.1:8080'
+    server = ThreadedHTTPServer(('127.0.0.1', 8088), CustomHandler)
+    print 'Listening on 127.0.0.1:8088'
 
     try:
         server.serve_forever()

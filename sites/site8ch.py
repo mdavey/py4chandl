@@ -27,5 +27,12 @@ def get_images(html):
             url = match.group(1)
             if url not in urls:
                 urls.append(url)
-                
+
+        match = re.search('^(/.*?/src/.*?\.[a-zA-Z]{3,4})$', href, re.DOTALL)
+
+        if match is not None:
+            url = match.group(1)
+            if url not in urls:
+                urls.append('https://8ch.net' + url)
+
     return urls
